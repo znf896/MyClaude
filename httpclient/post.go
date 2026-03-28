@@ -324,3 +324,76 @@ func buildURLWithQuery(baseURL string, query map[string]string) (string, error) 
 
 	return parsedURL.String(), nil
 }
+
+// Get 发送GET请求
+func (c *Client) Get(ctx context.Context, url string, query map[string]string, headers map[string]string) (*Response, error) {
+	return c.GetWithResponse(ctx, url, query, headers, nil)
+}
+
+// GetWithResponse 发送GET请求并解析响应到指定结构体
+func (c *Client) GetWithResponse(ctx context.Context, fullURL string, query map[string]string, headers map[string]string, resp interface{}) (*Response, error) {
+	// 构建带查询参数的URL
+	url, err := buildURLWithQuery(fullURL, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建请求
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// 设置默认请求头
+	for k, v := range c.defaultHeaders {
+		httpReq.Header.Set(k, v)
+	}
+
+	// 设置自定义请求头
+	for k, v := range headers {
+		httpReq.Header.Set(k, v)
+	}
+
+	// 发送请求
+	httpResp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	// 读取响应体
+	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	result := &Response{
+		StatusCode: httpResp.StatusCode,
+		Headers:    httpResp.Header,
+		Body:       respBody,
+	}
+
+	// 如果需要解析响应到结构体
+	if resp != nil && len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, resp); err != nil {
+			return result, fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+	}
+
+	return result, nil
+}
+
+// Get 快捷方法 - 使用默认客户端发送GET请求
+func Get(ctx context.Context, url string, query map[string]string, headers map[string]string) (*Response, error) {
+	return DefaultClient.Get(ctx, url, query, headers)
+}
+
+// GetWithResult 快捷方法 - 使用默认客户端发送GET请求并解析响应
+func GetWithResult[T any](ctx context.Context, url string, query map[string]string, headers map[string]string) (*T, *Response, error) {
+	var result T
+	resp, err := DefaultClient.GetWithResponse(ctx, url, query, headers, &result)
+	if err != nil {
+		return nil, resp, err
+	}
+	return &result, resp, nil
+}
