@@ -1,11 +1,26 @@
 package githubtrending
 
+// SortBy 排序方式常量
+const (
+	SortByStars     = "stars"     // 按Star数排序（默认）
+	SortByForks     = "forks"     // 按Fork数排序
+	SortByUpdated   = "updated"   // 按更新时间排序
+)
+
+// Order 排序顺序常量
+const (
+	OrderDesc = "desc" // 降序（默认）
+	OrderAsc  = "asc"  // 升序
+)
+
 // TopOptions 查询选项
 type TopOptions struct {
 	Count     int    // 返回数量，默认30，最大100
 	MinStars  int    // 最小star数，默认1
 	Language  string // 按语言筛选，可选
-	Query     string // 额外搜索关键词
+	Query     string // 搜索关键词（支持自定义主题，如"ai", "kubernetes"等）
+	SortBy    string // 排序方式：stars/forks/updated，默认stars
+	Order     string // 排序顺序：desc/asc，默认desc
 }
 
 // SearchResult GitHub搜索结果

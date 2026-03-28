@@ -181,11 +181,14 @@ req := &httpclient.Request{
 
 ### 功能特性
 
-- 获取按Star排序的热门项目
-- 可筛选语言、最小Star数量
-- 可选获取每个项目的README文章内容（自动base64解码）
-- 支持GitHub Token认证（提升API速率限制）
-- 选项模式配置，无外部依赖
+- ✅ **支持自定义搜索** - 可搜索任意主题：AI方向、Go第三方包、机器学习等任意关键词
+- ✅ **多种排序方式** - 支持按stars/forks/updated排序，升序降序可配置
+- ✅ **筛选功能** - 可筛选语言、最小Star数量
+- ✅ **获取文章** - 可选获取每个项目的README文章内容（自动base64解码）
+- ✅ **导出到文件** - 自动按日期命名输出markdown文件，相同日期自动追加
+- ✅ **内置CLI工具** - 命令行直接使用，支持参数配置
+- ✅ **支持GitHub Token认证** - 提升API速率限制
+- ✅ **选项模式配置**，无外部依赖
 
 ### 快速开始
 
@@ -253,14 +256,71 @@ client := githubtrending.NewClient(
 result, err := client.GetTopProjects(ctx, opt)
 ```
 
+### 命令行使用
+
+项目提供了完整的CLI工具 `github-top`：
+
+```bash
+# 编译
+go build -o github-top ./cmd/github-top/
+
+# 获取AI方向top 10项目，输出到output目录
+GITHUB_TOKEN=your-token ./github-top -count 10 -query "ai artificial-intelligence" -output ./output
+
+# 获取Go语言第三方库top 20项目
+./github-top -count 20 -language go -query "library" -min-stars 5000
+
+# 获取按更新时间排序的最新Python项目
+./github-top -count 20 -language python -sort-by updated -min-stars 1000
+
+# 输出参数说明:
+#   -count int
+#         Number of top projects to fetch (default 10)
+#   -min-stars int
+#         Minimum stars required (default 1000)
+#   -language string
+#         Filter by programming language (e.g. go, python)
+#   -query string
+#         Search keywords (e.g. 'ai', 'kubernetes', 'machine learning')
+#   -sort-by string
+#         Sort by: stars/forks/updated (default "stars")
+#   -order string
+#         Sort order: desc/asc (default "desc")
+#   -output string
+#         Output directory for markdown file (default "./output")
+#   -token-env string
+#         Environment variable name for GitHub token (default "GITHUB_TOKEN")
+#   -fetch-readme bool
+#         Fetch README content as article (default true)
+```
+
+### 导出文件说明
+
+结果会自动导出到markdown文件，命名格式：
+```
+output/github-top-YYYY-MM-DD.md
+```
+
+- 如果同一天多次运行，**自动追加写入**同一个文件
+- 每个项目包含完整信息：名称、stars、forks、描述、仓库链接、README全文内容
+- 标准markdown格式，方便阅读和存档
+
 ### API说明
 
 - `NewClient(opts ...Option)` - 创建新客户端
 - `Client.GetTopProjects(ctx, opt)` - 获取Top项目列表
 - `Client.GetRepositoryREADME(ctx, owner, repo)` - 获取单个项目README
 - `Client.GetTopProjectsWithREADME(ctx, opt)` - 获取Top项目并同时获取README
+- `ExportToFile(result, outputDir)` - 导出结果到按日期命名的markdown文件，支持追加
 - `WithToken(token)` - 配置GitHub Token
 - `WithTimeout(timeout)` - 配置超时
+
+**排序常量：**
+- `githubtrending.SortByStars` - 按Star数排序（默认）
+- `githubtrending.SortByForks` - 按Fork数排序
+- `githubtrending.SortByUpdated` - 按更新时间排序
+- `githubtrending.OrderDesc` - 降序（默认）
+- `githubtrending.OrderAsc` - 升序
 
 ---
 

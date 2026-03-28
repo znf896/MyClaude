@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -94,13 +96,23 @@ func (c *Client) GetTopProjects(ctx context.Context, opt *TopOptions) (*SearchRe
 		count = 100 // GitHub API最大限制
 	}
 
+	// 设置默认排序
+	sortBy := opt.SortBy
+	if sortBy == "" {
+		sortBy = SortByStars
+	}
+	order := opt.Order
+	if order == "" {
+		order = OrderDesc
+	}
+
 	query := opt.buildSearchQuery()
 	apiURL := fmt.Sprintf("%s/search/repositories", c.baseURL)
 
 	queryParams := map[string]string{
 		"q":        query,
-		"sort":     "stars",
-		"order":    "desc",
+		"sort":     sortBy,
+		"order":    order,
 		"per_page": fmt.Sprintf("%d", count),
 	}
 
@@ -189,4 +201,91 @@ func GetTopProjects(ctx context.Context, opt *TopOptions) (*SearchResult, error)
 // GetTopProjectsWithREADME 使用默认客户端获取Top项目并包含README文章内容
 func GetTopProjectsWithREADME(ctx context.Context, opt *TopOptions) (*SearchResult, error) {
 	return DefaultClient.GetTopProjectsWithREADME(ctx, opt)
+}
+
+// ExportToFile 将搜索结果导出到离线文件，按日期命名
+// filePath: 输出目录，默认输出到当前目录下的 "github-top-YYYY-MM-DD.md"
+// 如果文件已存在，支持追加写入
+func ExportToFile(result *SearchResult, outputDir string) (string, error) {
+	// 生成文件名：github-top-YYYY-MM-DD.md
+	dateStr := time.Now().Format("2006-01-02")
+	fileName := fmt.Sprintf("github-top-%s.md", dateStr)
+	var filePath string
+	if outputDir != "" {
+		// 确保目录存在
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return "", err
+		}
+		filePath = filepath.Join(outputDir, fileName)
+	} else {
+		filePath = fileName
+	}
+
+	// 打开文件，追加模式
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// 写入markdown内容
+	_, err = file.WriteString(fmt.Sprintf("# GitHub Top Projects - %s\n\n", dateStr))
+	if err != nil {
+		return "", err
+	}
+	_, err = file.WriteString(fmt.Sprintf("Total: **%d** projects\n\n", result.TotalCount))
+	if err != nil {
+		return "", err
+	}
+
+	for i, repo := range result.Items {
+		_, err = file.WriteString(fmt.Sprintf("## %d. %s\n\n", i+1, repo.FullName))
+		if err != nil {
+			return "", err
+		}
+		_, err = file.WriteString(fmt.Sprintf("- ⭐ **Stars:** %d\n", repo.Stars))
+		if err != nil {
+			return "", err
+		}
+		_, err = file.WriteString(fmt.Sprintf("- 🍴 **Forks:** %d\n", repo.Forks))
+		if err != nil {
+			return "", err
+		}
+		_, err = file.WriteString(fmt.Sprintf("- 👤 **Author:** %s\n", repo.Owner.Login))
+		if err != nil {
+			return "", err
+		}
+		_, err = file.WriteString(fmt.Sprintf("- 🔍 **Language:** %s\n", repo.Language))
+		if err != nil {
+			return "", err
+		}
+		_, err = file.WriteString(fmt.Sprintf("- 🔗 **Repository:** [%s](%s)\n", repo.HTMLURL, repo.HTMLURL))
+		if err != nil {
+			return "", err
+		}
+		if repo.Description != "" {
+			_, err = file.WriteString(fmt.Sprintf("- 📝 **Description:** %s\n", repo.Description))
+			if err != nil {
+				return "", err
+			}
+		}
+
+		if repo.README != nil && repo.README.Content != "" {
+			_, err = file.WriteString("\n---\n\n### 📄 README\n\n")
+			if err != nil {
+				return "", err
+			}
+			_, err = file.WriteString(repo.README.Content)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		_, err = file.WriteString("\n\n---\n\n")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return filePath, nil
 }
