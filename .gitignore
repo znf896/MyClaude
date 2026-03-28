@@ -1,0 +1,23 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+*.out
+
+# Go workspace
+*.code-workspace
+
+# Local IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude settings
+.claude/settings.local.json
