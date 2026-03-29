@@ -5,7 +5,7 @@
 
 # Configuration
 BINARY="./github-top"
-OUTPUT_DIR="./output"
+OUTPUT_DIR="/Users/zhangzhanghaimin/Documents/48-AI项目/output"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
 # Topics to fetch
