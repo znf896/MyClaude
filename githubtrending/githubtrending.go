@@ -203,6 +203,16 @@ func GetTopProjectsWithREADME(ctx context.Context, opt *TopOptions) (*SearchResu
 	return DefaultClient.GetTopProjectsWithREADME(ctx, opt)
 }
 
+// GetToken 获取当前客户端配置的GitHub Token
+func (c *Client) GetToken() string {
+	return c.token
+}
+
+// DefaultClientGetToken 获取默认客户端的GitHub Token
+func DefaultClientGetToken() string {
+	return DefaultClient.GetToken()
+}
+
 // ExportToFile 将搜索结果导出到离线文件，按日期命名
 // filePath: 输出目录，默认输出到当前目录下的 "github-top-YYYY-MM-DD.md"
 // 如果文件已存在，支持追加写入
